@@ -14,6 +14,10 @@ import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
 import { graphqlClient } from "./api/api";
 import { verifyUserGoogleTokenQuery } from "./graphql/query/user";
+import { RequestDocument } from "graphql-request";
+import { userAgent } from "next/server";
+import { useCurrentUser } from "./hooks/user";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface TwitterSideBarButton {
   title: string;
@@ -60,25 +64,35 @@ const sidebarMenuItems: TwitterSideBarButton[] = [
 ];
 
 export default function Home() {
+
+  // const {user} = useCurrentUser();
+  // const queryClient = useQueryClient();
+
+  // console.log(user);
+  
+
   const handaleLogWithGoogle = useCallback(async (cred: CredentialResponse) => {
     const googleToken = cred.credential;
     if (!googleToken) return toast.error(`Google token not found`);
-    const { verifyGoogleToken } = await graphqlClient.request(
-      verifyUserGoogleTokenQuery,
+    const response = await graphqlClient.request<{ data: { verifyUserGoogleToken: string } }>(
+      verifyUserGoogleTokenQuery as RequestDocument,
       { token: googleToken }
     );
+    const verifyGoogleToken = response.data?.verifyUserGoogleToken;
 
     toast.success("Verified Success");
     console.log(verifyGoogleToken);
     
     if (verifyGoogleToken)
       window.localStorage.setItem("__twitter_token", verifyGoogleToken);
+
+    // await queryClient.invalidateQueries({ queryKey: ["current-user"] });
   }, []);
 
   return (
     <div>
       <div className="grid grid-cols-12 h-screen w-screen px-56">
-        <div className=" col-span-3 pt-1">
+        <div className=" col-span-3 pt-1 relative">
           <div className="text-4xl h-fit w-fit hover:bg-gray-800 rounded-full p-4 cursor-pointer transition-all">
             <FaXTwitter />
           </div>
@@ -99,6 +113,18 @@ export default function Home() {
                 Post
               </button>
             </div>
+            {/* {user && <div className=" bottom-5 absolute flex gap-2 items-center bg-slate-800 p-3 py-2 rounded-full">
+              {user && user.profileImageURL && (
+                <img className=" rounded-full" src={user?.profileImageURL}
+                alt='user-image'
+                height={50}
+                width={50} />
+              )}
+              <div>
+              <h3 className=" text-xl">{userAgent.firstName}</h3>
+              <h3 className=" text-xl">{userAgent.lastName}</h3>
+              </div>
+            </div>} */}
           </div>
         </div>
         <div className=" col-span-6 border-r-[1px] border-l-[1px] h-screen overflow-y-scroll border-gray-600">
